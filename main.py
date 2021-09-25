@@ -100,7 +100,6 @@ def integrate(f):
     elif type(f) == Mul:
         # y = a*x
         if isint(f.args[0]):
-            print("\tq")
             return f.args[0] * Mul(*[integrate(e) for e in f.args[1:]])
 
     # y = exp(a) where 'a' is linear
