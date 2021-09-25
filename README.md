@@ -1,2 +1,2 @@
 # integrals
-Integral calculation implementation by me
+Function integration implementation by me
