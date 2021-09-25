@@ -7,7 +7,7 @@ from sympy import sin, cos, tan, asin, acos, atan, csc, sec, cot
 
 
 def isint(i):
-    """ Checks if 'i' is an int because sympy has its own Integer implementation"""
+    """ Checks if 'i' is an int because sympy has its own Integer implementation """
     try:
         int(i)
         return True
@@ -44,7 +44,7 @@ def integrate(f):
     # defines the variable to be used on the known functions
     x = symbols("x")
 
-    # expands the function make it easier to integrate
+    # expands the function to make it easier to integrate
     f = expand(f)
 
     # list of known function integrals
