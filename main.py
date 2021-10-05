@@ -9,18 +9,21 @@ import mathf
 """ Main function """
 
 
-def integrate(f, v=x):
+def integrate(f, v=x, depth=0, ex=True):
     """
     Integrate the function 'f' where 'f' is any function defined in the sympy
     module.
-    The function must have a single variable.
-    Returns the integrated function if it finds a way to integrate
-    (it may be wrong), and False if it doesn't.
+    The function must have a single variable called 'x'.
+    Returns the integrated function if it finds a way to integrate and False if it doesn't.
     v: variable used to integrate (usually x)
+    depth: by-part recursion depth
+    ex: decide whether to start by expanding the function or not
     """
-    print(f"Function: {f}\t\tv: {v}")
+    print("\t" * depth, end="")
+    print(f"Function: {f}\t\tv: {v}\t\tdepth: {depth}")
     # expands the function to make it easier to integrate
-    f = expand(f)
+    if ex:
+        f = expand(f)
 
     # list of known function integrals
     known_f = {v: v**2/2,
@@ -55,11 +58,10 @@ def integrate(f, v=x):
 
     # y = Sum(a, b, c, ...)
     elif type(f) == Add:
-        return Add(*[integrate(e, v=v) for e in f.args])
+        return Add(*[integrate(e, v=v, depth=depth) for e in f.args])
 
     # y = Pow(a, b)
     elif type(f) == Pow:
-
         # y = x**a where isint(a)
         if type(f.args[0]) == Symbol and mathf.isint(f.args[1]):
             return Pow(f.args[0], f.args[1] + 1) / (f.args[1] + 1)
@@ -72,7 +74,7 @@ def integrate(f, v=x):
     elif type(f) == Mul:
         # y = a*x where isint(a)
         if mathf.isint(f.args[0]):
-            return f.args[0] * Mul(*[integrate(e, v=v) for e in f.args[1:]])
+            return f.args[0] * integrate(Mul(*f.args[1:]), v=v, depth=depth)
 
     """ THIRD TRY: known transformation within the function """
     # TODO: trigonometric identities
@@ -88,22 +90,31 @@ def integrate(f, v=x):
     """ FOURTH TRY: substitution for each subset of the function """
     # TODO: remove the risk of infinite recursion by expanding the function more and more
     # TODO: sort out unlikely possibilities / rank them by usefulness
-    # gets the list of all possible pieces of function to substitute
-    possibilities = mathf.getargs(f)
 
-    # each 'p' is a subpart of 'f'
-    for p in possibilities:
-        u = symbols("u")
-        p_inv = solve(p - u, v)[-1]
+    # keeps track of recursion depth in order to avoid infinite loop
+    if depth < 1:
+        # gets the list of all possible pieces of function to substitute
+        possibilities = mathf.getargs(f)
 
-        # 'new_f' is a temp variable to perform integration by substitution
-        new_f = f / diff(p)
-        new_f = new_f.subs(x, p_inv)
-        new_f = integrate(new_f, v=u)
-        new_f = new_f.subs(u, p)
+        # sort the parts by the shortest one (most probable to be right)
+        possibilities = sorted(possibilities, key=lambda x: len(str(x)))
 
-        # in the case in which the function is not integrated, the loop goes on
-        if new_f:
-            return new_f
+        # each 'p' is a subpart of 'f'
+        for p in possibilities:
+            u = symbols("u")
+            try:
+                p_inv = solve(p - u, v)[0]
+            # case in which the inverse has not been found
+            except IndexError:
+                continue
+
+            # 'new_f' is a temp variable to perform integration by substitution
+            new_f = f / diff(p)
+            new_f = new_f.subs(x, p_inv)
+            new_f = integrate(new_f, v=u, depth=depth+1)
+            # in the case in which the function is not integrated, the loop goes on
+            if new_f:
+                new_f = new_f.subs(u, p)
+                return new_f
 
     return False
