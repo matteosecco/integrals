@@ -46,11 +46,15 @@ def subst(f, p, v=x):
     # v: default variable
     """
     u = symbols("u")
-    p_inv = solve(p - u, v)[-1]
+    try:
+        p_inv = solve(p - u, v)[0]
+    # case in which the inverse has not been found
+    except IndexError:
+        return False
 
     new_f = f / diff(p)
     new_f = new_f.subs(x, p_inv)
-    new_f = main.integrate(new_f, v=u)
+    new_f = main.integrate(new_f, v=u, depth=1)
     new_f = new_f.subs(u, p)
 
     return new_f
@@ -60,7 +64,7 @@ def check(f):
     """ Checks if the integration is correct by running the
     implementation made by Sympy """
 
-    if not main.integrate(f):
-        return f"{str(f)} --> {str(intg(f))}, instead got {str(main.intergrate(f))}"
+    if not main.integrate(f) == intg(f):
+        return f"{str(f)} --> {str(intg(f))}, instead got {str(main.integrate(f))}"
     else:
         return True
