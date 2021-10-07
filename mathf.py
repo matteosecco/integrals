@@ -1,6 +1,5 @@
 from sympy.abc import x
-from sympy import Symbol, Add, Mul, solve, diff, symbols
-from sympy import integrate as intg
+import sympy as sp
 
 import main
 
@@ -19,9 +18,9 @@ def isint(n):
 
 def islinear(f):
     """ Checks if the function is in the form y = mx + q """
-    if type(f) == Symbol or isint(f):
+    if type(f) == sp.Symbol or isint(f):
         return True
-    elif type(f) == Mul or type(f) == Add:
+    elif type(f) == sp.Mul or type(f) == sp.Add:
         for e in f.args:
             if not islinear(e):
                 return False
@@ -32,7 +31,7 @@ def islinear(f):
 
 def getargs(f):
     """ Returns a list of all args of the function and of its components """
-    l = [e for e in f.args if type(e) != Symbol and not isint(e)]
+    l = [e for e in f.args if type(e) != sp.Symbol and not isint(e)]
     for e in l:
         l.extend(getargs(e))
 
@@ -45,26 +44,31 @@ def subst(f, p, v=x):
     # p: piece to substitute with dummy variable
     # v: default variable
     """
-    u = symbols("u")
-    try:
-        p_inv = solve(p - u, v)[0]
-    # case in which the inverse has not been found
-    except IndexError:
-        return False
+    u = sp.symbols("u")
+    for el in sp.solve(p - u, v):
+        if "I" not in str(el):
+            p_inv = el
+            break
+    else:
+        return 0
 
-    new_f = f / diff(p)
+    new_f = f / sp.diff(p)
     new_f = new_f.subs(x, p_inv)
     new_f = main.integrate(new_f, v=u, depth=1)
-    new_f = new_f.subs(u, p)
 
-    return new_f
+    if new_f:
+        new_f = new_f.subs(u, p)
+        return new_f
+    return 0
 
 
 def check(f):
     """ Checks if the integration is correct by running the
     implementation made by Sympy """
+    a = sp.simplify(main.integrate(f))
+    b = sp.simplify(sp.integrate(f, x))
 
-    if not main.integrate(f) == intg(f):
-        return f"{str(f)} --> {str(intg(f))}, instead got {str(main.integrate(f))}"
+    if not a == b:
+        return f"{str(f)} --> {str(b)}, instead got {str(a)}"
     else:
         return True
